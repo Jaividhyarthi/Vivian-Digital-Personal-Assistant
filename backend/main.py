@@ -161,7 +161,9 @@ async def chat(m:Message):
           {'type':'function','function':{'name':'create_task','description':'Create a task in the owner local Vivian task list only when explicitly requested.',
             'parameters':{'type':'object','properties':{'title':{'type':'string'},'detail':{'type':'string'},'priority':{'type':'string','enum':['low','normal','high']}},'required':['title'],'additionalProperties':False}}},
           {'type':'function','function':{'name':'save_note','description':'Save a note to the current conversation space only when explicitly requested.',
-            'parameters':{'type':'object','properties':{'title':{'type':'string'},'content':{'type':'string'}},'required':['title','content'],'additionalProperties':False}}}
+            'parameters':{'type':'object','properties':{'title':{'type':'string'},'content':{'type':'string'}},'required':['title','content'],'additionalProperties':False}}},
+          {'type':'function','function':{'name':'save_memory','description':'Remember a stable preference or fact in the current space only when the owner explicitly asks Vivian to remember it. Never infer consent to store sensitive information.',
+            'parameters':{'type':'object','properties':{'content':{'type':'string','description':'Concise memory explicitly requested by the owner (max 2000 characters)'}},'required':['content'],'additionalProperties':False}}}
         ]
         try:
             async with httpx.AsyncClient(timeout=45) as client:
@@ -188,6 +190,11 @@ async def chat(m:Message):
                                 if not title:raise ValueError('Title missing')
                                 result=add_note(Note(title=title,content=str(args['content'])[:10000],space=m.space))
                                 outcome={'saved_note_id':result['id'],'title':title}
+                            elif name=='save_memory':
+                                content=str(args['content'])[:2000].strip()
+                                if not content:raise ValueError('Memory content missing')
+                                result=add_memory(MemoryIn(space=m.space,content=content))
+                                outcome={'saved_memory_id':result['id'],'space':m.space,'content':content}
                             else: outcome={'error':'Unsupported tool'}
                         except Exception as exc:outcome={'error':str(exc)}
                         msgs.append({'role':'tool','tool_call_id':tool['id'],'content':json.dumps(outcome)})
