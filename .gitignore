@@ -1,13 +1,26 @@
+# Environment secrets
 .env
 .env.*
 !.env.example
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Node.js
+node_modules/
+dist/
+
+# Local databases
 *.db
 *.db-shm
 *.db-wal
-__pycache__/
-*.pyc
-.venv/
-node_modules/
-dist/
-.DS_Store
+*.sqlite
+*.sqlite3
+
+# Logs and temporary files
 *.log
+.DS_Store
