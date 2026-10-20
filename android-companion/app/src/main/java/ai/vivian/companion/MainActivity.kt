@@ -9,6 +9,11 @@ import android.net.Uri
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import org.json.JSONObject
+import java.net.URL
+import javax.net.ssl.HttpsURLConnection
 import android.provider.ContactsContract
 import android.provider.Settings
 import android.speech.RecognizerIntent
@@ -30,9 +35,15 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
     private var lastTab = "Home"
     private var input: EditText? = null
     private var result: TextView? = null
+    private var serverUrl = ""
+    private var sessionToken = ""
+    private var chatSpace = "personal"
+    private var busy = false
+    private var conversation = mutableListOf<String>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        serverUrl = getPreferences(MODE_PRIVATE).getString("server_url", "") ?: ""
         tts = TextToSpeech(this, this)
         showTab("Home")
     }
@@ -140,21 +151,28 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
         val battery = getSystemService(BATTERY_SERVICE) as BatteryManager
         val level = battery.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
         panel("Device connected locally", "${Build.MANUFACTURER} ${Build.MODEL} · Android ${Build.VERSION.RELEASE} · Battery $level%")
-        panel("Vivian Assistant", "Speak or type a command to open an app, dial a number, or prepare an SMS.") { showTab("Assistant") }
+        panel("Vivian Assistant", "Speak naturally, chat with AI when connected, or control supported phone actions.") { showTab("Assistant") }
         panel("Phone & communication", "Dialer, SMS composer and contact picker. You approve the final action.") { showTab("Phone") }
         panel("Privacy", "No cloud pairing or notification reading enabled. All current commands run on this phone.") { showTab("Settings") }
     }
     private fun assistant() {
-        content.addView(label("What can I do for you?", 23f, true))
-        content.addView(label("Try: open WhatsApp, call 1234567890, text 1234567890, open Gmail.", 13f))
+        content.addView(label("Talk to Vivian", 23f, true))
+        content.addView(label(if (serverUrl.isBlank()) "Offline mode · Connect an HTTPS backend in Settings for AI conversations." else "AI server configured · Select Personal or Professional", 13f))
+        button("Space: $chatSpace (tap to switch)") {
+            chatSpace = if (chatSpace == "personal") "professional" else "personal"
+            conversation.clear()
+            showTab("Assistant")
+        }
+        result = label(if (conversation.isEmpty()) "Vivian: Hi! You can speak to me now." else conversation.takeLast(8).joinToString("\\n\\n"), 15f)
+        content.addView(result)
         input = EditText(this).apply {
-            hint = "Type a command..."
+            hint = "Ask Vivian anything..."
             setSingleLine(false)
             minLines = 2
         }
         content.addView(input)
-        button("Run command") { execute(input?.text?.toString().orEmpty()) }
-        button("Speak a command") {
+        button("Send to Vivian") { handleUserMessage(input?.text?.toString().orEmpty()) }
+        button("Speak to Vivian") {
             val i = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                 putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak to Vivian")
@@ -162,9 +180,67 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
             try { startActivityForResult(i, speechRequest) }
             catch (_: ActivityNotFoundException) { toast("Speech recognition is not available on this device") }
         }
-        result = label("Vivian is ready. Commands are processed locally in v0.2.", 14f)
-        content.addView(result)
-        panel("Coming later", "AI chat, ChatGPT/Claude knowledge, remote pairing, and advanced automation require additional integration.")
+        button("Stop speaking") { tts?.stop() }
+        panel("Local phone commands", "Say open WhatsApp, open YouTube, call 1234567890, or text 1234567890. Phone actions stay on your device.")
+    }
+    private fun handleUserMessage(raw: String) {
+        val message = raw.trim()
+        if (message.isBlank()) return
+        if (busy) { toast("Please wait for Vivian to reply"); return }
+        input?.setText("")
+        conversation.add("You: $message")
+        val lower = message.lowercase(Locale.ROOT)
+        val local = lower.startsWith("open ") || lower.startsWith("call ") ||
+            lower.startsWith("dial ") || lower.startsWith("text ") || lower.startsWith("sms ") ||
+            lower == "settings"
+        if (local) {
+            execute(message)
+            val reply = result?.text?.toString().orEmpty()
+            conversation.add("Vivian: $reply")
+            result?.text = conversation.takeLast(8).joinToString("\\n\\n")
+            return
+        }
+        if (serverUrl.isBlank()) {
+            val reply = "I can hear you! My AI brain is not connected yet. Open Settings and enter your secure Vivian server URL."
+            conversation.add("Vivian: $reply")
+            result?.text = conversation.takeLast(8).joinToString("\\n\\n")
+            tts?.speak(reply, TextToSpeech.QUEUE_FLUSH, null, "vivian-offline")
+            return
+        }
+        busy = true
+        result?.text = conversation.takeLast(8).joinToString("\\n\\n") + "\\n\\nVivian: Thinking..."
+        val url = serverUrl.trimEnd('/')
+        val token = sessionToken
+        val space = chatSpace
+        Thread {
+            val answer = try {
+                val connection = URL("$url/api/chat").openConnection() as HttpsURLConnection
+                connection.requestMethod = "POST"
+                connection.connectTimeout = 12000
+                connection.readTimeout = 55000
+                connection.doOutput = true
+                connection.setRequestProperty("Content-Type", "application/json")
+                if (token.isNotBlank()) connection.setRequestProperty("x-vivian-token", token)
+                val payload = JSONObject().put("text", message).put("space", space).toString()
+                connection.outputStream.use { it.write(payload.toByteArray(Charsets.UTF_8)) }
+                val status = connection.responseCode
+                val body = (if (status in 200..299) connection.inputStream else connection.errorStream)
+                    ?.bufferedReader()?.use { it.readText() }.orEmpty()
+                connection.disconnect()
+                if (status in 200..299) JSONObject(body).optString("reply",
+                    JSONObject(body).optString("answer", "Vivian replied without text."))
+                else if (status == 401) "Connection rejected. Check the server access token or Codespaces port access."
+                else "Server returned HTTP $status. Check that Vivian is running."
+            } catch (e: Exception) {
+                "I couldn't reach the Vivian backend. Check its HTTPS URL, port access and internet connection."
+            }
+            Handler(Looper.getMainLooper()).post {
+                busy = false
+                conversation.add("Vivian: $answer")
+                result?.text = conversation.takeLast(8).joinToString("\\n\\n")
+                tts?.speak(answer.take(3500), TextToSpeech.QUEUE_FLUSH, null, "vivian-ai")
+            }
+        }.start()
     }
     private fun execute(raw: String) {
         val command = raw.trim().lowercase(Locale.ROOT)
@@ -228,8 +304,36 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
     }
     private fun settings() {
         content.addView(label("Device & permissions", 23f, true))
-        panel("Connection", "Local-only · No remote server paired")
-        panel("Security", "No SMS, contacts, microphone, accessibility, or notification permissions requested by Vivian. Speech uses the installed Android speech-recognition activity.")
+        panel("AI connection", "HTTPS backend: " + if (serverUrl.isBlank()) "Not configured" else serverUrl)
+        val urlInput = EditText(this).apply {
+            hint = "https://your-vivian-backend.example.com"
+            setSingleLine(true)
+            setText(serverUrl)
+        }
+        content.addView(urlInput)
+        button("Save HTTPS server URL") {
+            val value = urlInput.text.toString().trim().trimEnd('/')
+            if (value.isNotBlank() && (!value.startsWith("https://") || value.contains("@"))) {
+                toast("Use a valid HTTPS URL with no embedded credentials")
+            } else {
+                serverUrl = value
+                getPreferences(MODE_PRIVATE).edit().putString("server_url", serverUrl).apply()
+                toast("Server URL saved")
+            }
+        }
+        val tokenInput = EditText(this).apply {
+            hint = "Vivian server token (session only)"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+            setSingleLine(true)
+        }
+        content.addView(tokenInput)
+        button("Use token for this session") {
+            sessionToken = tokenInput.text.toString()
+            tokenInput.setText("")
+            toast("Session token set. It will not be saved to disk.")
+        }
+        panel("Backend requirements", "Use HTTPS and a backend protected by VIVIAN_API_TOKEN. Codespaces may sleep; private forwarded ports can require GitHub sign-in and may not work from the app.")
+        panel("Security", "AI messages are sent only to the configured HTTPS backend. Session token is held in memory. Phone actions remain local and require interaction.")
         button("Android notification access settings") {
             safeStart(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
         }
@@ -245,7 +349,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
             val spoken = data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
             if (!spoken.isNullOrBlank()) {
                 input?.setText(spoken)
-                execute(spoken)
+                handleUserMessage(spoken)
             }
         } else if (requestCode == contactRequest && resultCode == RESULT_OK) {
             toast("Contact selected. Direct contact dialing will be added in a later release.")
