@@ -22,7 +22,7 @@ import java.util.Locale
 class MainActivity : Activity(), TextToSpeech.OnInitListener {
     private val forest = Color.rgb(25, 66, 50)
     private val mint = Color.rgb(221, 241, 226)
-    private val background = Color.rgb(249, 249, 245)
+    private val pageBackgroundColor = Color.rgb(249, 249, 245)
     private lateinit var content: LinearLayout
     private var tts: TextToSpeech? = null
     private val speechRequest = 101
@@ -87,7 +87,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
     }
     private fun showTab(tab: String) {
         lastTab = tab
-        val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(background) }
+        val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(pageBackgroundColor) }
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(20), dp(24), dp(20), dp(12))
@@ -105,7 +105,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener {
             setTextColor(Color.rgb(210, 236, 217))
         })
         root.addView(header)
-        val scroll = ScrollView(this).apply { fillViewport = true }
+        val scroll = ScrollView(this).apply { isFillViewport = true }
         content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(18), dp(18), dp(18), dp(18))
