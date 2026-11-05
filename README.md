@@ -1,5 +1,23 @@
 # Vivian — Digital Personal Assistant
 
+[![Project stage](https://img.shields.io/badge/Stage-Development_Prototype-f59e0b?style=for-the-badge)](#important-limitations--roadmap) [![Portfolio](https://img.shields.io/badge/Developer-Portfolio-6D28D9?style=for-the-badge)](https://jaividhyarthi.github.io/jv-portfolio)
+
+## Architecture at a glance
+
+```mermaid
+flowchart TD
+  A[React / Vite dashboard] --> B[FastAPI backend]
+  B --> C[(Local SQLite data)]
+  B --> D[Tasks, notes and approvals]
+  B --> E[OpenAI-backed assistant, when configured]
+  A --> F[Browser speech-to-text, if supported]
+  A --> G[Call screening simulation]
+```
+
+> This diagram describes the **development build**, not functioning carrier-level telephone handling or unattended external actions.
+
+
+
 Local-first, warm ivory-and-sage digital assistant with a React/Vite dashboard and a FastAPI/SQLite backend. **This is a tested development build, not a fully autonomous production phone agent.**
 
 ## Features available now
@@ -75,17 +93,10 @@ python -m pytest -q
 
 Frontend build: `cd frontend && npm install && npm run build`.
 
-## Publish
+## Repository and development status
 
-Create a new GitHub repository called `Vivian-Digital-Personal-Assistant` under your account, **without initializing README**, then in the extracted project root:
+This repository is already published at [Jaividhyarthi/Vivian-Digital-Personal-Assistant](https://github.com/Jaividhyarthi/Vivian-Digital-Personal-Assistant). Follow the local setup instructions above to develop or evaluate it. No live hosted production service is claimed.
 
-```bash
-git init
-git add .
-git commit -m "Initial Vivian Digital Personal Assistant release"
-git branch -M main
-git remote add origin https://github.com/Jaividhyarthi/Vivian-Digital-Personal-Assistant.git
-git push -u origin main
-```
+## Maintainer
 
-You must authenticate GitHub when prompted. Do not run git commands from a folder containing `.env` unless `.gitignore` is present and verified.
+[Jaividhyarthi Vivekanand](https://github.com/Jaividhyarthi) · [Portfolio](https://jaividhyarthi.github.io/jv-portfolio) · [LinkedIn](https://www.linkedin.com/in/jaividhyarthivivekanand/)
