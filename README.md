@@ -1,102 +1,86 @@
-# Vivian — Digital Personal Assistant
+# Vivian — Personal Digital Assistant
 
-[![Project stage](https://img.shields.io/badge/Stage-Development_Prototype-f59e0b?style=for-the-badge)](#important-limitations--roadmap) [![Portfolio](https://img.shields.io/badge/Developer-Portfolio-6D28D9?style=for-the-badge)](https://jaividhyarthi.github.io/jv-portfolio)
+Original Liquid Glass workspace with your approved Vivian character, a FastAPI backend, persistent local data, and a separate reminder worker. Development branch: `development/vivian-liquid-glass`.
 
-## Architecture at a glance
+**Working core build.** Live OpenAI and ElevenLabs verification is pending credentials. Google OAuth integrations, PostgreSQL migration, local wake word and OS push are not implemented yet. See [implementation status](docs/IMPLEMENTATION_STATUS.md) and [repository audit](docs/REPOSITORY_AUDIT.md).
 
-```mermaid
-flowchart TD
-  A[React / Vite dashboard] --> B[FastAPI backend]
-  B --> C[(Local SQLite data)]
-  B --> D[Tasks, notes and approvals]
-  B --> E[OpenAI-backed assistant, when configured]
-  A --> F[Browser speech-to-text, if supported]
-  A --> G[Call screening simulation]
-```
+## Run locally
 
-> This diagram describes the **development build**, not functioning carrier-level telephone handling or unattended external actions.
-
-
-
-Local-first, warm ivory-and-sage digital assistant with a React/Vite dashboard and a FastAPI/SQLite backend. **This is a tested development build, not a fully autonomous production phone agent.**
-
-## Features available now
-
-- Two-space (personal/professional) OpenAI-backed chat; explicit local task and note tool calls
-- Tasks, notes, explicit memory vault, contacts with trusted flags, reminders (stored only), call records, approvals, activity feed, preferences and JSON export
-- Browser speech-to-text on supported browsers, local call screening **simulation**, and integration-status dashboard
-- Non-destructive SQLite table migrations; local-first data stored in `backend/vivian.db`
-- No real outgoing actions without configured provider and consent
-
-## Requirements
-
-Python 3.11+ and Node.js 20+. OpenAI API key and separate paid API credits for AI replies.
-
-## Run — two terminals (Windows PowerShell recommended for frontend)
-
-**Backend (PowerShell):**
-
-```powershell
-cd backend
-py -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-Copy-Item ..\.env.example ..\.env
-# Edit ..\.env with OPENAI_API_KEY; do not commit secrets.
-python -m uvicorn main:app --reload --port 8000
-```
-
-**Backend (WSL Bash alternative):**
+Requires Python 3.11+ and Node.js 22+. From the repository root:
 
 ```bash
-cd backend
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
-cp ../.env.example ../.env
-# Edit ../.env; then:
-python -m uvicorn main:app --reload --port 8000
+python -m venv .venv
+# Windows PowerShell: .\.venv\Scripts\Activate.ps1
+# macOS/Linux: source .venv/bin/activate
+python -m pip install -r backend/requirements.txt -r backend/requirements-dev.txt
+cp .env.example .env
+# PowerShell instead: Copy-Item .env.example .env
 ```
 
-**Frontend (second Windows PowerShell terminal):**
+Set `VIVIAN_API_TOKEN` in the ignored `.env` to a unique random secret of at least 32 characters. This is your owner login token, not a provider API key. Keep it private. For local HTTP use `VIVIAN_COOKIE_SECURE=0`. OpenAI and ElevenLabs keys can remain blank.
 
-```powershell
+```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
-Open http://localhost:5173. Backend docs: http://localhost:8000/docs. **If using WSL 1, run frontend in Windows PowerShell** to avoid Windows Node.js/WSL compatibility errors.
+The development launcher starts the API, reminder worker and Vite together. Open the Local URL printed by Vite (normally `http://localhost:5173`). Enter your owner token. If Python uses another command, set `PYTHON` before starting the launcher. To run servers separately, use `npm run dev:frontend` and `python -m uvicorn main:app --port 8000` from `backend`.
 
-## Security and data
-
-- Never commit `.env`, credentials, call recordings or SQLite database files. `.gitignore` excludes them.
-- The default local development setup has no production-grade authentication. Do **not** expose port 8000 or 5173 to the internet.
-- `VIVIAN_API_TOKEN` is an optional development guard, but the browser needs a matching token; it is **not** secure public authentication.
-- Database is created on first start. New installations do not need to copy data from old versions.
-- `GET /api/export` exports local data. Protect this endpoint; it contains sensitive information.
-- User-saved memories are included in AI context; don't store sensitive information you don't want sent to the AI provider.
-
-## Important limitations / roadmap
-
-**Not connected:** real mobile SIM forwarding, purchased phone number, live telephony, call recording, voicemail, live transfer, native Android application, background notifications, Gmail/Calendar/Drive/GitHub OAuth, automatic external actions, device control, wake word, always-on agent, production auth. The call lab is explicitly a simulator. Stored reminders do not trigger OS notifications yet.
-
-For real telephone receptionist service you need an eligible Indian telecom/voice provider, number provisioning, webhook security, call audio streaming, appropriate recording consent and carrier conditional forwarding. None is silently enabled.
-
-## Tests
+If running the servers separately, start reminder delivery in another activated terminal:
 
 ```bash
 cd backend
-python -m pip install -r requirements-dev.txt
-python -m pytest -q
+python worker.py
 ```
 
-Frontend build: `cd frontend && npm install && npm run build`.
+The API and worker must use the same `VIVIAN_DB`. Data defaults to `backend/vivian.db`; files default to `backend/private-files`. Existing records are preserved by additive migrations. Back up both before deployment/upgrades. The worker must remain running for timely delivery; overdue jobs catch up when it restarts. Delivery goes to the durable **Vivian inbox**. No OS push or closed-browser audio is claimed.
 
-## Repository and development status
+## Configure providers later
 
-This repository is already published at [Jaividhyarthi/Vivian-Digital-Personal-Assistant](https://github.com/Jaividhyarthi/Vivian-Digital-Personal-Assistant). Follow the local setup instructions above to develop or evaluate it. No live hosted production service is claimed.
+Edit the ignored backend environment, then restart the API:
 
-## Maintainer
+```dotenv
+OPENAI_API_KEY=
+VIVIAN_MODEL=
+ELEVENLABS_API_KEY=
+ELEVENLABS_VOICE_ID=VnvaVe7ctz87lJj9udKY
+ELEVENLABS_MODEL=eleven_multilingual_v2
+VIVIAN_TIMEZONE=Asia/Kolkata
+```
 
-[Jaividhyarthi Vivekanand](https://github.com/Jaividhyarthi) · [Portfolio](https://jaividhyarthi.github.io/jv-portfolio) · [LinkedIn](https://www.linkedin.com/in/jaividhyarthivivekanand/)
+Choose a Responses API model with function calling available to your API project. The model has no hardcoded fallback. Missing configuration yields HTTP 503 and a visible setup message, never a simulated AI answer. ChatGPT subscription access does not configure API access.
+
+Microphone input uses browser speech recognition where supported, which may use the browser vendor's remote speech service. Review the transcript before sending. ElevenLabs keys remain backend-only. Playback can be interrupted using Stop. The supplied GIF has one frame; true avatar lip-sync and local wake-word support remain pending.
+
+## Verify
+
+```bash
+cd backend
+python -m pytest -q
+cd ../frontend
+npm test
+npm run build
+```
+
+Tests isolate their database and provider transport. They cover auth, cross-origin writes, persistent reminder delivery across processes, deduplication, recurrence, memory approvals, tool failures, unknown tools, spaces and file access. They do not establish live provider functionality.
+
+## Container deployment
+
+Configure `.env` first, then:
+
+```bash
+docker compose up --build -d
+```
+
+The web service binds to `127.0.0.1:8080`, proxies the API internally and serves the built frontend. API/worker share a named data volume. For remote access place a trusted HTTPS reverse proxy in front, set `VIVIAN_COOKIE_SECURE=1`, and set `VIVIAN_ALLOWED_ORIGINS` to the exact HTTPS origin. Never expose the development server publicly. Keep `VIVIAN_DEV_NO_AUTH` unset. No secrets, database files or private uploads belong in Git.
+
+Docker configuration is provided but has not been run in this environment. Keep SQLite deployment to one host with the shared volume; a PostgreSQL migration is still required for distributed deployment.
+
+## Compatibility and boundaries
+
+Android source is unchanged; its `/api/chat` and `x-vivian-token` contract remains. Existing notes, contacts, calls, call simulation, approvals and settings endpoints remain available. No Exotel integration was present in the audited repository; the simulator remains explicitly labelled.
+
+AI tools are allowlisted to local task creation, reminder creation and proposed memory. Memory proposals require approval before saving. No email, payment, telephony, publishing or arbitrary shell tool is exposed. Provider failures after a local action are audited and do not silently retry that action. Review Activity before retrying an interrupted request.
+
+[Maintainer](https://github.com/Jaividhyarthi) · [Portfolio](https://jaividhyarthi.github.io/jv-portfolio)

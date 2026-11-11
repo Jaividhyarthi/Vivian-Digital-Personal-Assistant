@@ -4,10 +4,12 @@ from pathlib import Path
 
 # Isolate tests from user's real database before importing app.
 os.environ['VIVIAN_DB'] = str(Path(tempfile.mkdtemp()) / 'test.db')
+os.environ['VIVIAN_API_TOKEN']='test-owner-token'
+os.environ['VIVIAN_COOKIE_SECURE']='0'
 from fastapi.testclient import TestClient
 from main import app
 
-client = TestClient(app)
+client = TestClient(app,headers={'x-vivian-token':'test-owner-token'})
 
 def test_health_and_lists():
     for path in ['/health','/api/overview','/api/tasks','/api/notes','/api/contacts','/api/reminders','/api/export']:

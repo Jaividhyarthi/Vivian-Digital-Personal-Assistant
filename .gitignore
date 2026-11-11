@@ -24,3 +24,8 @@ dist/
 # Logs and temporary files
 *.log
 .DS_Store
+
+# Private uploads and QA output
+backend/private-files/
+playwright-report/
+test-results/
