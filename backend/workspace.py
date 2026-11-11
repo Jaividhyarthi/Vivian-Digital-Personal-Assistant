@@ -41,6 +41,8 @@ class Pause(BaseModel):
 
 def migrate(g):
     with g['conn']() as c:
+        # Serialize the inspect/ALTER sequence across API and worker processes.
+        c.execute('BEGIN IMMEDIATE')
         for table, columns in {
             'tasks':{'space':"TEXT NOT NULL DEFAULT 'professional'",'due_at':'TEXT','category':"TEXT DEFAULT ''",'recurrence':"TEXT DEFAULT 'none'",'project_id':'TEXT'},
             'reminders':{'space':"TEXT NOT NULL DEFAULT 'professional'",'recurrence':"TEXT DEFAULT 'none'"},

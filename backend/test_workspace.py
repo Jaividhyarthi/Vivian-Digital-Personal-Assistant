@@ -120,3 +120,24 @@ def test_projects_files_memory_spaces(client):
 def test_migration_preserves_records(client):
     client.post('/api/tasks',json={'title':'Keep this'});main.init();migrate(vars(main))
     assert client.get('/api/tasks').json()[0]['title']=='Keep this'
+
+@pytest.mark.parametrize('legacy',[False,True])
+def test_simultaneous_api_worker_migrations(tmp_path,legacy):
+    """Start real independent imports together on fresh and older databases."""
+    import sqlite3
+    db=tmp_path/'concurrent.db'
+    if legacy:
+        with sqlite3.connect(db) as c:
+            c.execute('CREATE TABLE tasks(id TEXT PRIMARY KEY,title TEXT NOT NULL)')
+            c.execute("INSERT INTO tasks VALUES('existing','Preserve my task')")
+    code="import sys; sys.stdin.readline(); import main; print('ready')"
+    processes=[subprocess.Popen([sys.executable,'-c',code],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,env={**os.environ,'VIVIAN_DB':str(db)}) for _ in range(6)]
+    for process in processes:
+        process.stdin.write('start\n');process.stdin.flush()
+    for process in processes:
+        out,err=process.communicate(timeout=30)
+        assert process.returncode==0,err
+        assert 'ready' in out
+    with sqlite3.connect(db) as c:
+        assert sum(r[1]=='source' for r in c.execute('PRAGMA table_info(memories)'))==1
+        if legacy:assert c.execute("SELECT title FROM tasks WHERE id='existing'").fetchone()[0]=='Preserve my task'

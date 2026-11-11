@@ -20,7 +20,7 @@ app.add_middleware(CORSMiddleware,allow_origins=['http://localhost:5173','http:/
 @contextmanager
 def conn():
     DB.parent.mkdir(parents=True,exist_ok=True)
-    c=sqlite3.connect(DB); c.row_factory=sqlite3.Row
+    c=sqlite3.connect(DB,timeout=30); c.row_factory=sqlite3.Row
     try: yield c; c.commit()
     finally: c.close()
 
@@ -43,6 +43,8 @@ def init():
         CREATE TABLE IF NOT EXISTS reminders(id TEXT PRIMARY KEY,title TEXT NOT NULL,due_at TEXT NOT NULL,status TEXT DEFAULT 'pending',created_at TEXT);
         CREATE TABLE IF NOT EXISTS memories(id TEXT PRIMARY KEY,space TEXT NOT NULL,content TEXT NOT NULL,created_at TEXT);
         ''')
+        # Lock before inspecting columns; API and worker may start together.
+        c.execute('BEGIN IMMEDIATE')
         # Non-destructive schema migration for databases from v0.1/v0.2.
         required = {
             'tasks': {'detail':"TEXT DEFAULT ''",'status':"TEXT DEFAULT 'todo'",'priority':"TEXT DEFAULT 'normal'",'created_at':'TEXT'},
