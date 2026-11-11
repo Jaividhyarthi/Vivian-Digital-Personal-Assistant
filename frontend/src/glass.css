@@ -30,3 +30,33 @@
 .sidebar nav::-webkit-scrollbar-track{background:transparent}
 .sidebar-foot{margin-top:12px}
 .workspace{min-width:0}
+/* Persistent stage never overlays working controls. */
+.content-stage-layout{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:18px;padding-right:24px;align-items:start}
+.content-stage-layout main{min-width:0;width:100%;padding-right:0}
+.content-stage-layout.stage-hidden{grid-template-columns:minmax(0,1fr);padding-right:0}
+.content-stage-layout.stage-hidden main{padding-right:43px}
+.vivian-stage{position:sticky;top:24px;margin-top:39px;overflow:hidden;min-width:0;isolation:isolate}
+.stage-toolbar{display:flex;align-items:center;justify-content:space-between;padding:12px 12px 0;gap:8px}.stage-toolbar>div{display:flex}
+.character-portrait{height:355px;position:relative;overflow:hidden}
+.approved-portrait{position:absolute;inset:16px 0 0;background:url('/avatars/professional.webp') no-repeat right top;background-size:493% auto;mask-image:linear-gradient(black 62%,transparent 99%)}
+.personal .approved-portrait{background-image:url('/avatars/personal.webp');background-size:290% auto;background-position:left top}
+.stage-halo{position:absolute;inset:25% 10% 0;border-radius:50%;background:radial-gradient(ellipse,#ba9dd140,transparent 70%);opacity:.3;transition:opacity .6s}
+.vivian-stage[data-effects=true][data-state=listening] .stage-halo,.vivian-stage[data-effects=true][data-state=speaking] .stage-halo{opacity:1}
+.vivian-stage[data-effects=true][data-state=listening]{box-shadow:0 0 40px #ad99cf24}
+.vivian-stage[data-effects=true][data-state=speaking]{box-shadow:0 0 40px #b99ad52b}
+.stage-caption{padding:10px 18px 22px;text-align:center}.stage-caption h3 span{color:#b39bc9}.stage-caption p{font-size:12px;color:var(--muted);margin:6px 0}.stage-caption small{font-size:9px}
+.vivian-stage.compact .stage-caption{padding:8px 12px 16px}.chat-layout{display:block}.hero-copy{width:100%}.hero{height:auto;min-height:325px}
+.visual-options{padding:16px 0}.visual-options label{display:flex;align-items:center;gap:10px;margin-top:16px;font-size:12px}.visual-options p{font-size:11px;color:var(--muted);margin-top:16px}
+.glass,.sidebar,.stage-caption,.topbar{transition:background-color .6s,border-color .6s,box-shadow .45s,color .5s}
+.task-row{animation:row-arrive .25s ease-out}.task-row.completed .row-main{opacity:.55}.row-main{transition:opacity .2s}
+@keyframes row-arrive{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@media(min-width:1600px){.content-stage-layout{grid-template-columns:minmax(0,1fr) 320px}.character-portrait{height:430px}}
+@media(max-width:1200px){.content-stage-layout{grid-template-columns:minmax(0,1fr) 205px;gap:12px;padding-right:18px}.character-portrait{height:280px}.hero-copy{padding:26px}.hero h2{font-size:32px}.overview-strip{grid-template-columns:1fr}.overview-strip button{padding:10px 18px}.heading-row{flex-wrap:wrap}}
+@media(max-width:900px){.content-stage-layout{display:flex;flex-direction:column;padding:0}.content-stage-layout main{padding:24px 18px;width:100%}.vivian-stage{order:-1;position:relative;top:auto;margin:16px 18px 0;align-self:stretch;display:grid;grid-template-columns:1fr 1fr}.character-portrait{display:none}.stage-toolbar{padding:8px 12px}.stage-caption,.vivian-stage.compact .stage-caption{padding:8px 12px;text-align:right}.stage-caption small{display:none}.stage-caption p{font-size:10px}.stage-caption h3{font-size:16px}.content-stage-layout.stage-hidden main{padding:24px 18px}.hero-copy{width:100%}.hero{min-height:325px}.chat-panel{min-height:420px;height:70dvh}}
+@media(prefers-reduced-motion:reduce){.glass,.sidebar,.stage-caption,.topbar{transition:none}.task-row{animation:none}}
+@media(max-width:900px){.vivian-stage{grid-template-columns:1fr 48px 1fr;align-items:center}.character-portrait{display:block;height:48px;width:48px;border-radius:50%;margin:6px 0}.approved-portrait{inset:0;mask-image:none}.vivian-stage.compact{grid-template-columns:1fr 1fr}}
+.approved-portrait.professional{background-image:url('/avatars/professional.webp');background-size:493% auto;background-position:right top}
+.approved-portrait.personal{background-image:url('/avatars/personal.webp');background-size:290% auto;background-position:left top}
+.desktop-menu{margin-right:12px}.breadcrumb{margin-right:auto}
+@media(min-width:761px){.sidebar{transition:transform .35s cubic-bezier(.2,.8,.2,1)}.sidebar-collapsed .sidebar{transform:translateX(-100%)}.sidebar-collapsed .workspace{margin-left:0;width:100%}}
+@media(max-width:760px){.desktop-menu{display:none}}
