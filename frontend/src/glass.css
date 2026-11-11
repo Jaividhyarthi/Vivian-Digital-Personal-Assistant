@@ -20,3 +20,13 @@
 .hero .avatar-caption{left:12%;right:8%}
 @media(max-width:760px){.hero .avatar-stage{width:45%;opacity:.35}.hero .avatar-photo{width:100%;left:0}}
 .hero .avatar-photo{mask-image:linear-gradient(to bottom,black 65%,transparent),linear-gradient(to right,transparent,black 18%,black 82%,transparent);mask-composite:intersect}
+
+/* Keep navigation reachable independently of the page on short screens. */
+.sidebar{height:100vh;height:100dvh;overflow:hidden}
+.sidebar>.wordmark,.sidebar>.workspace-label,.sidebar-foot{flex-shrink:0}
+.sidebar nav{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:contain;scrollbar-width:thin;scrollbar-color:#a89ab866 transparent;padding-right:3px;-webkit-overflow-scrolling:touch}
+.sidebar nav::-webkit-scrollbar{width:6px}
+.sidebar nav::-webkit-scrollbar-thumb{background:#a89ab866;border-radius:6px}
+.sidebar nav::-webkit-scrollbar-track{background:transparent}
+.sidebar-foot{margin-top:12px}
+.workspace{min-width:0}
